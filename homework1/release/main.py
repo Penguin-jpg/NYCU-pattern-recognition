@@ -60,7 +60,7 @@ class LinearRegressionGradientdescent(LinearRegressionBase):
             # d_L_d_W = -2 / X.shape[0] * np.sum(X * (y - y_hat)[:, np.newaxis]) + self.reg_coef * (
             #     self.weights / np.abs(self.weights)
             # )
-            d_L_d_W = -2 / X.shape[0] * np.sum(np.dot(X.T, (y - y_hat))) + self.reg_coef * np.sum(
+            d_L_d_W = -2 / X.shape[0] * np.sum(X.T * (y - y_hat)) + self.reg_coef * np.sum(
                 self.weights / np.abs(self.weights)
             )
             d_L_d_B = -2 / X.shape[0] * np.sum(y - y_hat)
