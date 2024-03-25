@@ -22,14 +22,14 @@ class LinearRegressionCloseform(LinearRegressionBase):
         # W=(X^T X)^{-1} X^T Y (W includes bias term)
 
         # note that we need bias term, so we add a column to X
-        X = np.hstack((X, np.ones((X.shape[0], 1))))
+        X = np.hstack((np.ones((X.shape[0], 1)), X))
 
         pseudo_inverse = np.linalg.pinv(X)  # (X^T X)^{-1} X^T
         W = np.dot(pseudo_inverse, y)
 
-        # W[0:4] (w0~w4) is the weights and W[4:] (w5) is the bias
-        self.weights = W[0:4]
-        self.intercept = W[-1]
+        # W[0] (w0) is the intercept and W[1:] (w1~w4) is the weights
+        self.intercept = W[0]
+        self.weights = W[1:]
 
     def predict(self, X):
         # Y=XW+B
@@ -37,62 +37,54 @@ class LinearRegressionCloseform(LinearRegressionBase):
 
 
 class LinearRegressionGradientdescent(LinearRegressionBase):
-    def fit(self, X, y, learning_rate: float = 0.001, epochs: int = 1000):
+    def fit(self, X, y, learning_rate: float = 0.001, epochs: int = 1000, use_L1_regularization: bool = True):
         # initalize weights and intercept
         self.weights = np.random.randn(X.shape[1])
         self.intercept = np.zeros((1,))[0]  # cannot use ndarray or there will be an error
-        self.reg_coef = 0.001
-
+        self.regularization_coef = 0.001  #
         # store losses
         losses = []
 
         for epoch in range(epochs):
-            loss = 0
             y_hat = self.predict(X)
+            print(y_hat)
 
             # calculate derivative of loss function w.r.t weights (dL/dW)
             # and derivative of loss function w.r.t intercept (dL/dB):
             # L=MSE+L1_reg=1/N*sum((Y - Y_hat)**2)=1/N*sum((Y - (XW+B))**2)+lambda*sum(abs(W))
-            # dL/dW=2/N*sum((Y-(XW+B))*(-X))+lambda*sum(W/|W|)=-2/N*sum((Y-(XW+B))*X)+lambda*sum(W/|W|)
+            # dL/dW=2/N*sum((Y-(XW+B))*(-X))+lambda*sign(W)=-2/N*sum((Y-(XW+B))*X)+lambda*sign(W)
             # dL/dB=2/N*sum((Y-(XW+B))*(-1))=-2/N*sum((Y-(XW+B)))
-            # d_L_d_W = -2 / X.shape[0] * np.sum((y - y_hat) * X) + self.reg_coef * (self.weights / np.abs(self.weights))
 
-            # d_L_d_W = -2 / X.shape[0] * np.sum(X * (y - y_hat)[:, np.newaxis]) + self.reg_coef * (
-            #     self.weights / np.abs(self.weights)
-            # )
-            d_L_d_W = -2 / X.shape[0] * np.sum(X.T * (y - y_hat)) + self.reg_coef * np.sum(
-                self.weights / np.abs(self.weights)
-            )
+            if use_L1_regularization:
+                d_L_d_W = np.zeros((X.shape[1],))
+                # determine plus or minus based on sign of weights
+                for i in range(X.shape[1]):
+                    if self.weights[i] > 0:
+                        d_L_d_W[i] = -2 / X.shape[0] * np.sum((y - y_hat) * X[:, i]) + self.regularization_coef
+                    else:
+                        d_L_d_W[i] = -2 / X.shape[0] * np.sum((y - y_hat) * X[:, i]) - self.regularization_coef
+            else:
+                d_L_d_W = -2 / X.shape[0] * np.sum((y - y_hat) * X.T)
+
             d_L_d_B = -2 / X.shape[0] * np.sum(y - y_hat)
 
-            loss += compute_mse(y_hat, y) + self.L1_regularize(self.reg_coef)
-            # loss += compute_mse(y_hat, y)
+            loss = compute_mse(y_hat, y)
+            if use_L1_regularization:
+                loss += self.L1_regularize(self.regularization_coef)
 
             # update weights and intercept
             self.weights -= learning_rate * d_L_d_W
             self.intercept -= learning_rate * d_L_d_B
 
-            # for input, target in zip(X, y):
-
-            #     y_hat = self.predict(input)
-            #     d_L_d_W = -2 / X.shape[0] * np.sum((target - y_hat) * input) + self.reg_coef * (
-            #         self.weights / np.abs(self.weights)
-            #     )
-            #     d_L_d_B = -2 / X.shape[0] * np.sum(target - y_hat)
-
-            #     loss += compute_mse(y_hat, target) + self.L1_regularize(self.reg_coef)
-
-            #     # update weights and intercept
-            #     self.weights -= learning_rate * d_L_d_W
-            #     self.intercept -= learning_rate * d_L_d_B
-
-            # average loss
-            loss /= len(X)
             losses.append(loss)
+
+            if epoch % 10000 == 0:
+                logger.info(f"EPOCH {epoch}, {loss=}")
 
         return losses
 
     def predict(self, X):
+        # return np.dot(sigmoid(X), self.weights) + self.intercept
         return np.dot(X, self.weights) + self.intercept
 
     def plot_learning_curve(self, losses):
@@ -103,13 +95,13 @@ class LinearRegressionGradientdescent(LinearRegressionBase):
         plt.legend(loc="upper right")
         plt.show()
 
-    def L1_regularize(self, reg_coef):
-        # lambda * (|w0|+|w1|+...)
-        return reg_coef * np.sum(np.abs(self.weights))
+    def L1_regularize(self, regularization_coef):
+        # lambda * np.sum(|w0|+|w1|+...)
+        return regularization_coef * np.sum(np.abs(self.weights))
 
 
 def compute_mse(prediction, ground_truth):
-    return np.mean((prediction - ground_truth) ** 2)
+    return np.mean(np.square(prediction - ground_truth))
 
 
 def main():
@@ -122,8 +114,7 @@ def main():
     logger.info(f"{LR_CF.weights=}, {LR_CF.intercept=:.4f}")
 
     LR_GD = LinearRegressionGradientdescent()
-    # losses = LR_GD.fit(train_x, train_y, learning_rate=1e-4, epochs=3000) best result so far
-    losses = LR_GD.fit(train_x, train_y, learning_rate=1e-4, epochs=3000)
+    losses = LR_GD.fit(train_x, train_y, learning_rate=1e-4, epochs=750000)
     LR_GD.plot_learning_curve(losses)
     logger.info(f"{LR_GD.weights=}, {LR_GD.intercept=:.4f}")
 
