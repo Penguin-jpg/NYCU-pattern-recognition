@@ -24,7 +24,7 @@ def test_regression_cf(sample_data, slope_and_intercept):
     x, y = sample_data
     model = LinearRegressionCloseform()
     model.fit(x, y)
-    logger.info(f'{model.weights=}, {model.intercept=}')
+    logger.info(f"{model.weights=}, {model.intercept=}")
 
     slope, intercept = slope_and_intercept
     assert model.weights[0] == pytest.approx(slope, 0.1)
@@ -35,5 +35,7 @@ def test_regression_gd(sample_data, slope_and_intercept):
     x, y = sample_data
     model = LinearRegressionGradientdescent()
     model.fit(x, y, learning_rate=1e-4, epochs=70000)
+    # model = RidgeRegression(learning_rate=1e-4, iterations=70000)
+    # model.fit(x, y)
 
-    logger.info(f'{model.weights=}, {model.intercept=}')
+    logger.info(f"{model.weights=}, {model.intercept=}")
