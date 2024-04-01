@@ -48,9 +48,9 @@ class LinearRegressionGradientdescent(LinearRegressionBase):
     ):
         # initalize weights and intercept
         if y.ndim == 1:
-            self.weights = np.zeros((X.shape[1],))
+            self.weights = np.random.randn(X.shape[1])
         else:
-            self.weights = np.zeros((X.shape[1], 1))
+            self.weights = np.random.randn(X.shape[1], 1)
 
         self.intercept = 0
         self.regularization_coef = 0.001
@@ -146,7 +146,14 @@ def main():
     logger.info(f"{LR_CF.weights=}, {LR_CF.intercept=:.4f}")
 
     LR_GD = LinearRegressionGradientdescent()
-    losses = LR_GD.fit(train_x, train_y, learning_rate=1e-4, epochs=60000, batch_size=200, use_L1_regularization=True)
+    losses = LR_GD.fit(
+        train_x,
+        train_y,
+        learning_rate=1e-4,
+        epochs=60000,
+        batch_size=200,
+        use_L1_regularization=True,
+    )
     LR_GD.plot_learning_curve(losses)
     logger.info(f"{LR_GD.weights=}, {LR_GD.intercept=:.4f}")
 
