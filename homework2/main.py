@@ -30,7 +30,7 @@ class LogisticRegression:
         for iteration in range(self.num_iterations):
             y_preds, _ = self.predict(inputs)
 
-            # assume that the loss is MSE
+            # calculate gradient
             d_L_d_W = -2 / inputs.shape[0] * np.dot(inputs.T, targets - y_preds)
             d_L_d_B = -2 / inputs.shape[0] * np.sum(targets - y_preds)
 
