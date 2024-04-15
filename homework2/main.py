@@ -24,7 +24,8 @@ class LogisticRegression:
         The weights and intercept should be kept in self.weights and self.intercept.
         """
 
-        self.weights = np.random.randn(inputs.shape[1])
+        # use zero initialization for consistent training results
+        self.weights = np.zeros(inputs.shape[1])
         self.intercept = 0
 
         for iteration in range(self.num_iterations):
@@ -127,11 +128,6 @@ class FLD:
         # and y_original = y_proj * sin(theta)
         self.slope = self.w[1] / self.w[0]
 
-        # calculate the intercept
-        # we know that y=w^T x+b and M_0 and M_1 are on the line, so
-        # w^T m_0 + b = 0 -> b = -w^T m_0
-        self.intercept = -np.dot(self.m0, self.w)
-
     def predict(
         self,
         inputs: npt.NDArray[float],
@@ -163,8 +159,11 @@ class FLD:
         return y_preds
 
     def plot_projection(self, inputs: npt.NDArray[float]):
-        plt.title(f"Projection Line: w={self.slope}, b={self.w[0]}")
+        plt.title(f"Projection Line: w={self.slope}, b={self.threshold}")
 
+        # x = np.linspace(-2, 2, 100)
+        # y = self.slope * x - self.threshold
+        # plt.plot(x, y, c="black")
         plt.axline((0, 0), slope=self.slope, c="black")
 
         predicitons = self.predict(inputs)
@@ -181,6 +180,7 @@ class FLD:
         projected_class0_points = projected_inputs[predicitons == 0]
         # plot projected points along the direction of discriminant axis
         plt.scatter(projected_class0_points * self.w[0], projected_class0_points * self.w[1], c="blue")
+        plt.scatter(projected_class0_points * self.w[0], projected_class0_points * self.w[1], c="blue")
         # draw projected class 1 points
         projected_class1_points = projected_inputs[predicitons == 1]
         plt.scatter(projected_class1_points * self.w[0], projected_class1_points * self.w[1], c="red")
@@ -194,12 +194,12 @@ class FLD:
                 alpha=0.3,
             )
 
-        # # draw projection lines for class 1 points
+        # draw projection lines for class 1 points
         for class1_point, projected_class1_point in zip(class1_points, projected_class1_points):
             plt.plot(
                 [class1_point[0], projected_class1_point * self.w[0]],
                 [class1_point[1], projected_class1_point * self.w[1]],
-                c="red",
+                c="blue",
                 alpha=0.3,
             )
 
@@ -234,7 +234,7 @@ def main():
 
     LR = LogisticRegression(
         learning_rate=1e-2,  # You can modify the parameters as you want
-        num_iterations=5000,  # You can modify the parameters as you want
+        num_iterations=6000,  # You can modify the parameters as you want
     )
     LR.fit(x_train, y_train)
     y_pred_probs, y_pred_classes = LR.predict(x_test)
