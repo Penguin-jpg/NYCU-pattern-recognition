@@ -204,6 +204,9 @@ class FLD:
             )
 
         plt.legend(loc="upper left")
+        # use this to ensure the aspect ratio is correct
+        # https://stackoverflow.com/questions/50158333/how-do-i-enforce-a-square-grid-in-matplotlib
+        plt.gca().set_aspect("equal")
         plt.show()
 
 
@@ -232,16 +235,16 @@ def main():
     x_test = test_df.drop(["target"], axis=1).to_numpy()
     y_test = test_df["target"].to_numpy()
 
-    LR = LogisticRegression(
-        learning_rate=1e-2,  # You can modify the parameters as you want
-        num_iterations=6000,  # You can modify the parameters as you want
-    )
-    LR.fit(x_train, y_train)
-    y_pred_probs, y_pred_classes = LR.predict(x_test)
-    accuracy = accuracy_score(y_test, y_pred_classes)
-    auc_score = compute_auc(y_test, y_pred_probs)
-    logger.info(f"LR: Weights: {LR.weights[:5]}, Intercep: {LR.intercept}")
-    logger.info(f"LR: Accuracy={accuracy:.4f}, AUC={auc_score:.4f}")
+    # LR = LogisticRegression(
+    #     learning_rate=1e-2,  # You can modify the parameters as you want
+    #     num_iterations=6000,  # You can modify the parameters as you want
+    # )
+    # LR.fit(x_train, y_train)
+    # y_pred_probs, y_pred_classes = LR.predict(x_test)
+    # accuracy = accuracy_score(y_test, y_pred_classes)
+    # auc_score = compute_auc(y_test, y_pred_probs)
+    # logger.info(f"LR: Weights: {LR.weights[:5]}, Intercep: {LR.intercept}")
+    # logger.info(f"LR: Accuracy={accuracy:.4f}, AUC={auc_score:.4f}")
 
     # Part2: FLD
     cols = ["27", "30"]  # Dont modify
