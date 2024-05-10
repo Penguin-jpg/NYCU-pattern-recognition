@@ -46,7 +46,7 @@ def plot_learners_roc(
     y_trues: t.Sequence[int],
     fpath="./tmp.png",
 ):
-    fpr, tpr, thresholds = roc_curve(y_trues, y_preds)
+    fpr, tpr, _ = roc_curve(y_trues, y_preds)
     area = auc(fpr, tpr)
 
     plt.title("ROC Curve")
@@ -65,10 +65,8 @@ def get_accuracy(y_preds: t.List[t.Sequence[float]], y_trues: t.Sequence[int]):
     return num_correct / num_samples
 
 
-def plot_feature_importance(feature_importance):
-    features = ["age", "sex", "cp", "fbs", "thalach", "thal"]
-
+def plot_feature_importance(feature_names, feature_importance):
     plt.title("Feature Importance")
-    plt.barh(features, feature_importance)
+    plt.barh(feature_names, feature_importance)
     plt.gca().invert_yaxis()
     plt.show()

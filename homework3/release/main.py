@@ -28,12 +28,11 @@ def main():
     _ = clf_adaboost.fit(
         X_train,
         y_train,
-        num_epochs=500,
+        num_epochs=3000,
         learning_rate=0.001,
     )
     y_pred_classes, y_pred_probs = clf_adaboost.predict_learners(X_test)
     accuracy_ = get_accuracy(y_preds=y_pred_classes, y_trues=y_test)
-    print(y_test)
     logger.info(f"AdaBoost - Accuracy: {accuracy_:.4f}")
     plot_learners_roc(
         y_preds=y_pred_probs,
@@ -41,7 +40,7 @@ def main():
         fpath="adaboost.png",
     )
     feature_importance = clf_adaboost.compute_feature_importance()
-    plot_feature_importance(feature_importance)
+    plot_feature_importance(feature_names, feature_importance)
 
     # Bagging
     clf_bagging = BaggingClassifier(
@@ -50,12 +49,19 @@ def main():
     _ = clf_bagging.fit(
         X_train,
         y_train,
-        num_epochs=500,
+        num_epochs=3000,
         learning_rate=0.001,
     )
     y_pred_classes, y_pred_probs = clf_bagging.predict_learners(X_test)
-    accuracy_ = ...
+    accuracy_ = get_accuracy(y_preds=y_pred_classes, y_trues=y_test)
     logger.info(f"Bagging - Accuracy: {accuracy_:.4f}")
+    plot_learners_roc(
+        y_preds=y_pred_probs,
+        y_trues=y_test,
+        fpath="bagging.png",
+    )
+    feature_importance = clf_bagging.compute_feature_importance()
+    plot_feature_importance(feature_names, feature_importance)
 
     # Decision Tree
     clf_tree = DecisionTree(
@@ -63,8 +69,15 @@ def main():
     )
     clf_tree.fit(X_train, y_train)
     y_pred_classes = clf_tree.predict(X_test)
-    accuracy_ = ...
+    accuracy_ = get_accuracy(y_preds=y_pred_classes, y_trues=y_test)
     logger.info(f"DecisionTree - Accuracy: {accuracy_:.4f}")
+    plot_learners_roc(
+        y_preds=y_pred_classes,
+        y_trues=y_test,
+        fpath="decision_tree.png",
+    )
+    feature_importance = clf_tree.compute_feature_importance()
+    plot_feature_importance(feature_names, feature_importance)
 
 
 if __name__ == "__main__":
