@@ -10,9 +10,12 @@ from .utils import WeakClassifier, sigmoid, tanh, entropy_loss, get_accuracy
 class AdaBoostClassifier:
     def __init__(self, input_dim: int, num_learners: int = 10) -> None:
         # don't change these
-        random.seed(24)
-        np.random.seed(24)
-        torch.manual_seed(24)
+        # random.seed(24)
+        # np.random.seed(24)
+        # torch.manual_seed(24)
+        random.seed(8)
+        np.random.seed(8)
+        torch.manual_seed(8)
 
         self.sample_weights = None
         # create 10 learners, dont change.
@@ -95,23 +98,20 @@ class AdaBoostClassifier:
             X = torch.from_numpy(X).to(dtype=torch.float32)
             # use tanh to transform the predictions to range of (-1, 1)
             weak_predicitons = [
-                alpha * tanh(model(X))
+                # alpha * tanh(model(X))
                 # alpha * model(X).tanh()
-                # alpha * model(X)
+                alpha * model(X)
                 for alpha, model in zip(self.alphas, self.learners)
             ]
             weak_predicitons = torch.stack(weak_predicitons, dim=1).squeeze(2)
-            # calculate weighted sum of predictions
-            weak_predicitons = torch.sum(weak_predicitons, dim=1)
             # use sigmoid to transform the predictions to probability
-            preditced_probs = sigmoid(weak_predicitons)
-            # preditced_probs = weak_predicitons.sigmoid()
+            preditced_probs = sigmoid(weak_predicitons).permute(1, 0)
+            # calculate weighted sum of predictions
+            predictions = sigmoid(torch.sum(weak_predicitons, dim=1))
 
             # weighted sum to get the strong prediction
-            strong_predicitions = torch.where(
-                torch.sign(weak_predicitons) > 0, 1.0, 0.0
-            )
-            # strong_predicitions = torch.round(preditced_probs)
+            # strong_predicitions = torch.where(torch.sign(predictions) > 0, 1.0, 0.0)
+            strong_predicitions = torch.round(predictions)
 
         return strong_predicitions.numpy(), preditced_probs.numpy()
 

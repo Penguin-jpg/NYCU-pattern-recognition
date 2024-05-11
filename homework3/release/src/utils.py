@@ -46,14 +46,27 @@ def plot_learners_roc(
     y_trues: t.Sequence[int],
     fpath="./tmp.png",
 ):
-    fpr, tpr, _ = roc_curve(y_trues, y_preds)
-    area = auc(fpr, tpr)
+    fig = plt.figure(figsize=(8, 8))
+    if y_preds.ndim == 2:
+        for y_pred in y_preds:
+            fpr, tpr, _ = roc_curve(y_trues, y_pred)
+            area = auc(fpr, tpr)
 
-    plt.title("ROC Curve")
-    plt.xlabel("FPR")
-    plt.ylabel("TPR")
-    plt.plot(fpr, tpr, label=f"AUC={area:.4f}")
-    plt.legend(loc="lower right")
+            plt.title("ROC Curve")
+            plt.xlabel("FPR")
+            plt.ylabel("TPR")
+            plt.plot(fpr, tpr, label=f"AUC={area:.4f}")
+            plt.legend(loc="lower right")
+    else:
+        fpr, tpr, _ = roc_curve(y_trues, y_preds)
+        area = auc(fpr, tpr)
+
+        plt.title("ROC Curve")
+        plt.xlabel("FPR")
+        plt.ylabel("TPR")
+        plt.plot(fpr, tpr, label=f"AUC={area:.4f}")
+        plt.legend(loc="lower right")
+
     plt.savefig(fpath)
     plt.show()
 
@@ -68,5 +81,4 @@ def get_accuracy(y_preds: t.List[t.Sequence[float]], y_trues: t.Sequence[int]):
 def plot_feature_importance(feature_names, feature_importance):
     plt.title("Feature Importance")
     plt.barh(feature_names, feature_importance)
-    plt.gca().invert_yaxis()
     plt.show()

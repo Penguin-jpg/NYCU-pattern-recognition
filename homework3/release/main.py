@@ -28,8 +28,10 @@ def main():
     _ = clf_adaboost.fit(
         X_train,
         y_train,
-        num_epochs=3000,
-        learning_rate=0.001,
+        # num_epochs=3000,
+        # learning_rate=0.001,
+        num_epochs=4000,
+        learning_rate=0.06,
     )
     y_pred_classes, y_pred_probs = clf_adaboost.predict_learners(X_test)
     accuracy_ = get_accuracy(y_preds=y_pred_classes, y_trues=y_test)

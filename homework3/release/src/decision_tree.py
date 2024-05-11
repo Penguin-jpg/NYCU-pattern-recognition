@@ -168,7 +168,7 @@ class DecisionTree:
             feature_index=best_feature_index,
             threshold=best_threshold,
             num_samples=len(y),
-            gini=gini_index(y),
+            gini=gini_impurity(y),
         )
         # generate left subtree
         root.left = self.generate(X_left, y_left, current_depth + 1)
@@ -233,8 +233,16 @@ def weighted_entropy(y_left, y_right):
     return len(y_left) / N * entropy(y_left) + len(y_right) / N * entropy(y_right)
 
 
-def gini_index(y):
-    # gini index = 1 - sum(p^2)
+def gini_impurity(y):
+    # gini impurity = 1 - sum(p**2)
     _, counts = np.unique(y, return_counts=True)
     probs = counts / len(y)
     return 1 - np.sum(probs**2)
+
+
+# seems to be the same as gini impurity
+def gini_index(y):
+    # gini index = sum(p * (1 - p))
+    _, counts = np.unique(y, return_counts=True)
+    probs = counts / len(y)
+    return np.sum(probs * (1 - probs))

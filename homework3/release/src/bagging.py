@@ -83,10 +83,7 @@ class BaggingClassifier:
                 for prediction in predictions
             ]
 
-            # use expectation as the predicted probability
-            predicted_probs = torch.mean(predictions, dim=1)
-
-        return np.array(predicted_classes), predicted_probs.numpy()
+        return np.array(predicted_classes), predictions.permute(1, 0).numpy()
 
     def compute_feature_importance(self) -> t.Sequence[float]:
         """Implement your code here"""
