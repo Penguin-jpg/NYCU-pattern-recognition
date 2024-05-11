@@ -3,7 +3,7 @@ import numpy as np
 import torch
 import torch.optim as optim
 import random
-from .utils import WeakClassifier, sigmoid, tanh, entropy_loss, get_accuracy
+from .utils import WeakClassifier, sigmoid, entropy_loss, get_accuracy
 
 
 # best seed 24

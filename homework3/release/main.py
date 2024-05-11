@@ -73,11 +73,6 @@ def main():
     y_pred_classes = clf_tree.predict(X_test)
     accuracy_ = get_accuracy(y_preds=y_pred_classes, y_trues=y_test)
     logger.info(f"DecisionTree - Accuracy: {accuracy_:.4f}")
-    plot_learners_roc(
-        y_preds=y_pred_classes,
-        y_trues=y_test,
-        fpath="decision_tree.png",
-    )
     feature_importance = clf_tree.compute_feature_importance()
     plot_feature_importance(feature_names, feature_importance)
 

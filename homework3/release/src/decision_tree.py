@@ -6,8 +6,6 @@ However, you should checkout if your class/function meet the requirements.
 import typing as t
 import numpy as np
 
-# implementation modified from https://medium.com/@omidsaghatchian/decision-tree-implementation-from-scratch-visualization-5eb0bbf427c2
-
 
 class TreeNode:
     def __init__(
