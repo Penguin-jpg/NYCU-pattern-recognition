@@ -16,7 +16,7 @@ class TreeNode:
         right=None,
         predicted_class=None,
         is_leaf=False,
-        num_samples=None,
+        weight=None,
         gini=None,
     ):
         # index of the feature splitted on
@@ -29,9 +29,22 @@ class TreeNode:
         self.predicted_class = predicted_class
         # is this node a leaf node
         self.is_leaf = is_leaf
-        # to calculate feature importance, we have to store the number of samples and gini index
-        self.num_samples = num_samples
+        # to calculate feature importance, we have to store the weight and gini index
+        self.weight = weight
         self.gini = gini
+
+    def get_importance(self):
+        if self.is_leaf:
+            return 0
+
+        # importance = sample of node j / the number of samples * gini index of node j
+        importance = self.weight * self.gini
+        if self.left is not None:
+            importance -= self.left.get_importance()
+        if self.right is not None:
+            importance -= self.right.get_importance()
+
+        return importance
 
 
 class DecisionTree:
@@ -165,7 +178,7 @@ class DecisionTree:
         root = TreeNode(
             feature_index=best_feature_index,
             threshold=best_threshold,
-            num_samples=len(y),
+            weight=len(y) / self.num_samples,
             gini=gini_impurity(y),
         )
         # generate left subtree
@@ -192,10 +205,10 @@ class DecisionTree:
         self.traverse(root.right)
 
     def compute_feature_importance(self) -> t.Sequence[float]:
-        # importance = sample of node j / the number of samples * gini index of node j
-        # feature importance of feature i = sum(importance of all nodes splitted on feature i)
+        # importance of a node = weight * gini - weight_left * gini_left - weight_right * gini_right
+        # feature importance of feature = sum(importance of all nodes splitted on feature i) / sum(importance of all noeds)
+        all_importance = 0
         feature_importance = [0] * len(self.feature_thresholds)
-        current_impurity = self.root.gini
 
         # use level order traversal
         queue = [self.root]
@@ -205,16 +218,15 @@ class DecisionTree:
             if node.is_leaf:
                 continue
 
-            weight = node.num_samples / self.num_samples
-            importance = weight * (current_impurity - node.gini)
-            feature_importance[node.feature_index] += importance
+            all_importance += node.get_importance()
+            feature_importance[node.feature_index] += node.get_importance()
 
             if node.left is not None:
                 queue.append(node.left)
             if node.right is not None:
                 queue.append(node.right)
 
-        return np.array(feature_importance)
+        return np.array(feature_importance) / all_importance
 
 
 def entropy(y):
