@@ -39,10 +39,10 @@ class TreeNode:
 
         # importance = sample of node j / the number of samples * gini index of node j
         importance = self.weight * self.gini
-        if self.left is not None:
-            importance -= self.left.get_importance()
-        if self.right is not None:
-            importance -= self.right.get_importance()
+        if self.left is not None and not self.left.is_leaf:
+            importance -= self.left.weight * self.left.gini
+        if self.right is not None and not self.right.is_leaf:
+            importance -= self.right.weight * self.right.gini
 
         return importance
 
