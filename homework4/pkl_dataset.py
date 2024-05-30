@@ -15,13 +15,21 @@ class Bag:
         self.label = label
 
 
-class PickleTrainDataest(Dataset):
-    def __init__(self, image_dir, transform=None):
+class PickleDataest(Dataset):
+    def __init__(self, image_dir, transform=None, split="train"):
+        super(PickleDataest, self).__init__()
+
         self.bags = []
         for pkl_path in glob(os.path.join(image_dir, "train", "class_0", "*.pkl")):
             self.bags.append(Bag(pkl_path, 0))
         for pkl_path in glob(os.path.join(image_dir, "train", "class_1", "*.pkl")):
             self.bags.append(Bag(pkl_path, 1))
+
+        if split == "train":
+            self.bags = self.bags[: int(len(self.bags) * 0.8)]
+        else:
+            self.bags = self.bags[int(len(self.bags) * 0.8) :]
+
         self.transform = transform
 
     def __len__(self):
@@ -58,7 +66,7 @@ if __name__ == "__main__":
             T.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]),
         ]
     )
-    dataset = PickleTrainDataest(image_dir="dataset", transform=transform)
+    dataset = PickleDataest(image_dir="dataset", transform=transform, split="train")
     dataloader = DataLoader(dataset, batch_size=1, shuffle=True)
     print(len(dataset))
 
