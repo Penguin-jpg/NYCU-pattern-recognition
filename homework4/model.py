@@ -1,155 +1,165 @@
-# code from https://github.com/AMLab-Amsterdam/AttentionDeepMIL/blob/master/model.py
+# code based on https://github.com/AMLab-Amsterdam/AttentionDeepMIL/blob/master/model.py
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torchvision import models
 
 
-class Attention(nn.Module):
+class MilModel(nn.Module):
     def __init__(self):
-        super(Attention, self).__init__()
-        self.M = 500
-        self.L = 128
-        self.ATTENTION_BRANCHES = 1
+        super(MilModel, self).__init__()
 
-        self.feature_extractor_part1 = nn.Sequential(
-            nn.Conv2d(3, 20, kernel_size=5),
-            nn.ReLU(),
-            nn.MaxPool2d(2, stride=2),
-            nn.Conv2d(20, 50, kernel_size=5),
-            nn.ReLU(),
-            nn.MaxPool2d(2, stride=2),
+        extractor_weight = models.ResNet50_Weights.DEFAULT
+        self.feature_extractor = models.resnet50(weights=extractor_weight)
+        # remove the last fc layer
+        self.feature_extractor = nn.Sequential(
+            *list(self.feature_extractor.children())[:-1]
         )
+        self.feature_extractor.eval()
+        self.preprocess = extractor_weight.transforms()
 
-        self.feature_extractor_part2 = nn.Sequential(
-            nn.Linear(50 * 4 * 4, self.M),
-            nn.ReLU(),
-        )
-
-        self.attention = nn.Sequential(
-            nn.Linear(self.M, self.L),  # matrix V
-            nn.Tanh(),
-            nn.Linear(
-                self.L, self.ATTENTION_BRANCHES
-            ),  # matrix w (or vector w if self.ATTENTION_BRANCHES==1)
-        )
-
-        self.classifier = nn.Sequential(
-            nn.Linear(self.M * self.ATTENTION_BRANCHES, 1), nn.Sigmoid()
+        self.bottleneck = nn.Linear(2048, 256)
+        self.out_mlp = nn.Sequential(
+            nn.Linear(256 * 256, 128 * 128),
+            nn.Linear(128 * 128, 32 * 32),
+            nn.Linear(32 * 32, 1),
         )
 
     def forward(self, x):
-        x = x.squeeze(0)
-
-        H = self.feature_extractor_part1(x)
-        H = H.view(-1, 50 * 4 * 4)
-        H = self.feature_extractor_part2(H)  # KxM
-
-        A = self.attention(H)  # KxATTENTION_BRANCHES
-        A = torch.transpose(A, 1, 0)  # ATTENTION_BRANCHESxK
-        A = F.softmax(A, dim=1)  # softmax over K
-
-        Z = torch.mm(A, H)  # ATTENTION_BRANCHESxM
-
-        Y_prob = self.classifier(Z)
-        Y_hat = torch.ge(Y_prob, 0.5).float()
-
-        return Y_prob, Y_hat, A
-
-    # AUXILIARY METHODS
-    def calculate_classification_error(self, X, Y):
-        Y = Y.float()
-        _, Y_hat, _ = self.forward(X)
-        error = 1.0 - Y_hat.eq(Y).cpu().float().mean().data.item()
-
-        return error, Y_hat
-
-    def calculate_objective(self, X, Y):
-        Y = Y.float()
-        Y_prob, _, A = self.forward(X)
-        Y_prob = torch.clamp(Y_prob, min=1e-5, max=1.0 - 1e-5)
-        neg_log_likelihood = -1.0 * (
-            Y * torch.log(Y_prob) + (1.0 - Y) * torch.log(1.0 - Y_prob)
-        )  # negative log bernoulli
-
-        return neg_log_likelihood, A
+        # x = self.preprocess(x)
+        x = x.view(*x.shape[1:])
+        x = self.feature_extractor(x)
+        x = x.view(x.shape[0], -1)
+        # print(x.shape)
+        x = self.bottleneck(x)
+        x = x.view(-1)
+        # print(x.shape)
+        x = self.out_mlp(x)
+        # print(x.shape)
+        return x.sigmoid()
 
 
-class GatedAttention(nn.Module):
-    def __init__(self):
-        super(GatedAttention, self).__init__()
-        self.M = 500
-        self.L = 128
-        self.ATTENTION_BRANCHES = 1
+# class GatedAttentionModel(nn.Module):
+#     def __init__(
+#         self,
+#         encoder_channels=[64, 128, 256],
+#         dim=512,
+#         attention_dim=128,
+#         num_attention_branches=1,
+#     ):
+#         super(GatedAttentionModel, self).__init__()
 
-        self.feature_extractor_part1 = nn.Sequential(
-            nn.Conv2d(3, 20, kernel_size=5),
+#         self.instance_encoder = nn.Sequential(
+#             nn.Conv2d(
+#                 3,
+#                 encoder_channels[0],
+#                 kernel_size=3,
+#                 stride=1,
+#                 padding=1,
+#             ),
+#             nn.ReLU(),
+#             nn.AvgPool2d(kernel_size=2),
+#             nn.Conv2d(
+#                 encoder_channels[0],
+#                 encoder_channels[1],
+#                 kernel_size=3,
+#                 stride=1,
+#                 padding=1,
+#             ),
+#             nn.ReLU(),
+#             nn.AvgPool2d(kernel_size=2),
+#             nn.Conv2d(
+#                 encoder_channels[1],
+#                 encoder_channels[2],
+#                 kernel_size=3,
+#                 stride=1,
+#                 padding=1,
+#             ),
+#             nn.ReLU(),
+#             nn.AvgPool2d(kernel_size=2),
+#         )
+
+#         self.bottleneck = nn.Sequential(
+#             nn.Linear(encoder_channels[2] * 16 * 16, dim),
+#             nn.ReLU(),
+#         )
+
+#         self.attention_v = nn.Sequential(
+#             nn.Linear(dim, attention_dim),
+#             nn.Tanh(),
+#         )
+
+#         self.attention_u = nn.Sequential(
+#             nn.Linear(dim, attention_dim),
+#             nn.Sigmoid(),
+#         )
+
+#         self.attention_weights = nn.Linear(attention_dim, num_attention_branches)
+#         self.classify = nn.Sequential(
+#             nn.Linear(dim * num_attention_branches, 1),
+#             nn.Sigmoid(),
+#         )
+
+#     def forward(self, x):
+#         # remove the batch dimension
+#         x = x.squeeze(0)
+
+#         h = self.instance_encoder(x)
+#         h = h.view(-1, 256 * 16 * 16)
+#         h = self.bottleneck(h)
+
+#         v = self.attention_v(h)
+#         u = self.attention_u(h)
+#         # element-wise multiplication
+#         attention = self.attention_weights(v * u).transpose(1, 0)
+#         attention = F.softmax(attention, dim=1)
+#         attention_out = torch.matmul(attention, h)
+
+#         out = self.classify(attention_out)
+#         return out
+
+
+class GatedAttentionModel(nn.Module):
+    def __init__(self, instance_dim, hidden_dim):
+        super(GatedAttentionModel, self).__init__()
+        # use pre-trained ResNet-18
+        self.cnn = models.resnet18(pretrained=True)
+        self.cnn.fc = nn.Identity()  # Remove the classification layer
+        self.instance_encoder = nn.Sequential(
+            nn.Linear(instance_dim, hidden_dim),
             nn.ReLU(),
-            nn.MaxPool2d(2, stride=2),
-            nn.Conv2d(20, 50, kernel_size=5),
-            nn.ReLU(),
-            nn.MaxPool2d(2, stride=2),
-        )
-
-        self.feature_extractor_part2 = nn.Sequential(
-            nn.Linear(50 * 4 * 4, self.M),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
         )
-
-        self.attention_V = nn.Sequential(
-            nn.Linear(self.M, self.L),
-            nn.Tanh(),  # matrix V
+        self.attention_v = nn.Sequential(nn.Linear(hidden_dim, hidden_dim), nn.Tanh())
+        self.attention_u = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim), nn.Sigmoid()
         )
+        self.attention_weights = nn.Linear(hidden_dim, 1)
+        self.classifier = nn.Linear(hidden_dim, 1)
 
-        self.attention_U = nn.Sequential(
-            nn.Linear(self.M, self.L),
-            nn.Sigmoid(),  # matrix U
-        )
-
-        self.attention_w = nn.Linear(
-            self.L, self.ATTENTION_BRANCHES
-        )  # matrix w (or vector w if self.ATTENTION_BRANCHES==1)
-
-        self.classifier = nn.Sequential(
-            nn.Linear(self.M * self.ATTENTION_BRANCHES, 1), nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        x = x.squeeze(0)
-
-        H = self.feature_extractor_part1(x)
-        H = H.view(-1, 50 * 4 * 4)
-        H = self.feature_extractor_part2(H)  # KxM
-
-        A_V = self.attention_V(H)  # KxL
-        A_U = self.attention_U(H)  # KxL
-        A = self.attention_w(
-            A_V * A_U
-        )  # element wise multiplication # KxATTENTION_BRANCHES
-        A = torch.transpose(A, 1, 0)  # ATTENTION_BRANCHESxK
-        A = F.softmax(A, dim=1)  # softmax over K
-
-        Z = torch.mm(A, H)  # ATTENTION_BRANCHESxM
-
-        Y_prob = self.classifier(Z)
-        Y_hat = torch.ge(Y_prob, 0.5).float()
-
-        return Y_prob, Y_hat, A
-
-    # AUXILIARY METHODS
-    def calculate_classification_error(self, X, Y):
-        Y = Y.float()
-        _, Y_hat, _ = self.forward(X)
-        error = 1.0 - Y_hat.eq(Y).cpu().float().mean().item()
-
-        return error, Y_hat
-
-    def calculate_objective(self, X, Y):
-        Y = Y.float()
-        Y_prob, _, A = self.forward(X)
-        Y_prob = torch.clamp(Y_prob, min=1e-5, max=1.0 - 1e-5)
-        neg_log_likelihood = -1.0 * (
-            Y * torch.log(Y_prob) + (1.0 - Y) * torch.log(1.0 - Y_prob)
-        )  # negative log bernoulli
-
-        return neg_log_likelihood, A
+    def forward(self, bag):
+        B, N, C, H, W = bag.shape
+        bag = bag.view(-1, C, H, W)  # Flatten the bag for CNN processing
+        instance_features = self.cnn(bag)  # Extract features with CNN
+        instance_features = instance_features.view(
+            B, N, -1
+        )  # Reshape to (batch_size, num_instances, instance_dim)
+        instance_embeddings = self.instance_encoder(
+            instance_features
+        )  # Encode instances
+        attention_v = self.attention_v(instance_embeddings)
+        attention_u = self.attention_u(instance_embeddings)
+        attention_weights = self.attention_weights(
+            attention_v * attention_u
+        )  # Element-wise multiplication for gating
+        attention_weights = F.softmax(
+            attention_weights, dim=1
+        )  # Normalize weights along the instance dimension
+        bag_embedding = torch.sum(
+            attention_weights * instance_embeddings, dim=1
+        )  # Aggregate instances
+        bag_output = self.classifier(bag_embedding)  # Classify bag
+        bag_output = torch.sigmoid(bag_output)
+        return bag_output
