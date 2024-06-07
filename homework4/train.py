@@ -2,12 +2,12 @@ import os
 
 import torch
 import torchvision.transforms as T
-from model import GatedAttentionModel
+from models import GatedAttentionModel
 from pkl_dataset import PickleDataest
 from torch import nn
 from torch.utils.data import DataLoader
 from tqdm import tqdm
-from utils import get_accuracy, train_val_split
+from utils import get_accuracy, train_val_split, plot_losses, plot_accuracy
 
 
 def train_one_epoch(model, train_dataloader, optimizer, loss_fn, device):
@@ -65,12 +65,18 @@ def train(
     checkpoint_path,
     device,
 ):
+    train_losses, val_losses = [], []
+    training_accuracy, valid_accuracy = [], []
     best_accuracy = None
     for epoch in range(num_epochs):
         train_loss, train_accuracy = train_one_epoch(
             model, train_dataloader, optimizer, loss_fn, device
         )
+        train_losses.append(train_loss)
+        training_accuracy.append(train_accuracy.item())
         val_loss, val_accuracy = evaluate(model, val_dataloader, loss_fn, device)
+        val_losses.append(val_loss)
+        valid_accuracy.append(val_accuracy.item())
         print(
             f"Epoch {epoch} Train loss: {train_loss:.4f} Train accuracy: {train_accuracy:.4f} Val loss: {val_loss:.4f} Val accuracy: {val_accuracy:.4f}"
         )
@@ -83,6 +89,9 @@ def train(
             print(f"Accuracy {best_accuracy}. Saving model to best_model.pth")
 
         torch.save(model.state_dict(), os.path.join(checkpoint_path, f"{epoch}.pth"))
+
+    plot_losses(train_losses, val_losses)
+    plot_accuracy(training_accuracy, valid_accuracy)
 
 
 if __name__ == "__main__":

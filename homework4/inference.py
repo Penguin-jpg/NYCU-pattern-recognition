@@ -1,5 +1,5 @@
 import torch
-from model import GatedAttentionModel
+from models import GatedAttentionModel
 import torchvision.transforms as T
 from utils import get_test_bags
 from pkl_dataset import PickleDataest

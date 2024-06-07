@@ -4,6 +4,7 @@ import random
 from glob import glob
 
 import torch
+import matplotlib.pyplot as plt
 
 
 class Bag:
@@ -48,3 +49,27 @@ def train_val_split(image_dir, ratio=0.8):
 def get_test_bags(image_dir):
     # since test dataset doesn't have labels, we use -1 instead
     return [Bag(pkl_path, -1) for pkl_path in glob(os.path.join(image_dir, "*.pkl"))]
+
+
+def plot_losses(train_losses, val_losses):
+    plt.title("Training and Validation Loss")
+    plt.xlabel("Epoch")
+    plt.ylabel("Loss")
+    plt.plot(train_losses, label="Training Loss")
+    plt.plot(val_losses, label="Validation Loss")
+    plt.legend()
+    plt.savefig("losses.png")
+    plt.show()
+    plt.clf()
+
+
+def plot_accuracy(train_accuracy, val_accuracy):
+    plt.title("Training and Validation Accuracy")
+    plt.xlabel("Epoch")
+    plt.ylabel("Accuracy")
+    plt.plot(train_accuracy, label="Training Accuracy")
+    plt.plot(val_accuracy, label="Validation Accuracy")
+    plt.legend()
+    plt.savefig("accuracy.png")
+    plt.show()
+    plt.clf()
